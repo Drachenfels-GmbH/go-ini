@@ -98,41 +98,28 @@ func (r *Scanner) Scan() (*Line, error) {
 		if r.TrimLeadingSpace {
 			s = strings.TrimLeftFunc(s, unicode.IsSpace)
 		}
-		// trailing whitespace is only removed from sections and comments
 
 		// skip empty lines
 		if len(s) == 0 {
 			continue
 		}
 
-		if len(s) == 1 {
-			if rune(s[0]) == r.Comment {
-				continue
-			} else {
-				//if len(strings.TrimSpace(s)) == 0 {
-				//	continue
-				//} else {
-				return r.line, fmt.Errorf("Malformed line.")
-				//}
-			}
-		}
-
 		switch rune(s[0]) {
 		case r.Comment:
+			r.line.ValType = COMMENT
 			s := strings.TrimSpace(s[1:])
 			// skip empty comments
 			if len(s) == 0 {
 				continue
 			} else {
-				r.line.ValType = COMMENT
 				r.line.Value = s
 				return r.line, r.err
 			}
 		case '[':
 			// section
+			r.line.ValType = SECTION
 			s := strings.TrimRightFunc(s[1:], unicode.IsSpace)
 			if len(s) > 0 && s[len(s)-1] == ']' {
-				r.line.ValType = SECTION
 				r.line.Value = s[:len(s)-1]
 				return r.line, r.err
 			} else {
@@ -140,11 +127,11 @@ func (r *Scanner) Scan() (*Line, error) {
 			}
 		default:
 			// keyval
+			r.line.ValType = KEYVAL
 			vals := strings.SplitN(s, r.Separator, 2)
 			if len(vals) != 2 {
 				return r.line, fmt.Errorf("Malformed keyval.")
 			}
-			r.line.ValType = KEYVAL
 			r.line.Key = vals[0]
 			r.line.Value = vals[1]
 			return r.line, r.err

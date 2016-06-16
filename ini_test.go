@@ -15,7 +15,7 @@ func TestScan_EmptyLinesAndComments(t *testing.T) {
 
 #
 
-` // FIXME adding a space in front of here returns a LineError
+`
 	rdr := NewScanner(strings.NewReader(s))
 	//rdr.PanicOnError = true
 	line, err := rdr.Scan()
@@ -24,11 +24,6 @@ func TestScan_EmptyLinesAndComments(t *testing.T) {
 	assert.Equal(t, 4, line.Pos)
 	assert.Equal(t, COMMENT, line.ValType)
 	assert.Equal(t, "foobar", line.Value)
-
-	// FIXME return EOF from Scaner
-	//line, err = rdr.Scan()
-	//assert.Nil(t, line)
-	//assert.Equal(t, io.EOF, err)
 }
 
 func TestScan_KEYVAL(t *testing.T) {
@@ -65,3 +60,24 @@ func TestScan_EOF(t *testing.T) {
 	assert.Equal(t, 3, line.Pos)
 	assert.Equal(t, io.EOF, err)
 }
+
+func TestScan_SECTION(t *testing.T) {
+	s := `[foo]
+
+[blubber
+`
+	rdr := NewScanner(strings.NewReader(s))
+	line, err := rdr.Scan()
+	assert.Nil(t, err)
+	assert.Equal(t, 1, line.Pos)
+	assert.Equal(t, SECTION, line.ValType)
+	assert.Equal(t, "foo", line.Value)
+
+	line, err = rdr.Scan()
+	assert.Equal(t, 3, line.Pos)
+	assert.Equal(t, SECTION, line.ValType)
+	assert.Equal(t, "", line.Value)
+	assert.NotNil(t, err)
+}
+
+

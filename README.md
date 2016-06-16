@@ -1,7 +1,7 @@
 # go-ini
 
-Simple but powerful INI format parser with support for 
-duplicate sections and key/values
+Simple but powerful INI file parser.
+This parser helps you to access duplicate sections and keys.
 
 ## TODO
 
