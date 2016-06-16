@@ -4,8 +4,8 @@ import (
 	"github.com/stretchr/testify/assert"
 	"testing"
 )
-var s =
-`[foobar]
+
+var s = `[foobar]
 foo=bar
 hello=world
 
@@ -22,7 +22,7 @@ blub=bla
 `
 
 func TestUnmarshal(t *testing.T) {
-	i, err := Parse([]byte(s))
+	i, err := Unmarshal([]byte(s))
 	assert.Nil(t, err)
 
 	assert.Equal(t, 4, len(i.Sections))
@@ -35,7 +35,7 @@ func TestUnmarshal(t *testing.T) {
 }
 
 func TestSections(t *testing.T) {
-	i, err := Parse([]byte(s))
+	i, err := Unmarshal([]byte(s))
 	assert.Nil(t, err)
 
 	sections := i.GetSections("foobar")

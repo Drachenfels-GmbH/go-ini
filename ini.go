@@ -14,7 +14,7 @@ type INIUnmarshaler interface {
 }
 
 type Section struct {
-	Header *Line // FIXME no header for default section ?
+	Header *Line
 	Body   []*Line
 }
 
@@ -22,7 +22,7 @@ func (s *Section) Append(l *Line) {
 	s.Body = append(s.Body, l)
 }
 
-func(s *Section) IsDefault() bool {
+func (s *Section) IsDefault() bool {
 	return s.Header == nil
 }
 
@@ -52,7 +52,7 @@ type INI struct {
 func (i *INI) GetSections(name string) []*Section {
 	sections := make([]*Section, 0, 5)
 	for _, sec := range i.Sections {
-		if ! sec.IsDefault() && sec.Header.Value == name {
+		if !sec.IsDefault() && sec.Header.Value == name {
 			sections = append(sections, sec)
 		}
 	}
@@ -71,15 +71,12 @@ func (i *INI) CurrentSection() *Section {
 	return i.Sections[len(i.Sections)-1]
 }
 
-func (i *INI) Unmarshal(b []byte) error {
-	// create scanner
-	s := NewScanner(bytes.NewReader(b))
-
+func (i *INI) Unmarshal(s *Scanner) error {
 	for {
 		line, err := s.Scan()
 		if err != nil {
 			if err == io.EOF {
-				break // FIXME continue processing this line ?
+				break
 			} else {
 				return err
 			}
@@ -95,7 +92,9 @@ func (i *INI) Unmarshal(b []byte) error {
 	return nil
 }
 
-func Parse(b []byte) (*INI, error) {
+// Unmarshal using a Scanner with default settings
+func Unmarshal(b []byte) (*INI, error) {
 	i := New()
-	return i, i.Unmarshal(b)
+	s := NewScanner(bytes.NewReader(b))
+	return i, i.Unmarshal(s)
 }

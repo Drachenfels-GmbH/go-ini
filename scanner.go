@@ -23,13 +23,11 @@ const (
 	KEYVAL
 )
 
-// use a line reader
-// FIXME protect line values against modification ?
 type Line struct {
 	Pos int
 	Val []byte
 	ValType
-	Key   string // Non empty for ValType KEYVAL
+	Key   string
 	Value string
 }
 
@@ -53,10 +51,10 @@ type Scanner struct {
 	//
 	//PanicOnError bool
 
-	rdr     *bufio.Reader
-	pos     int   // line counter (beginning with line 1)
-	line    *Line // unmodified line value (e.g for error reporting)
-	err     error
+	rdr  *bufio.Reader
+	pos  int   // line counter (beginning with line 1)
+	line *Line // unmodified line value (e.g for error reporting)
+	err  error
 }
 
 // Process line by line
