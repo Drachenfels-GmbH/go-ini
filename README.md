@@ -1,3 +1,5 @@
+[![GoDoc](https://godoc.org/github.com/Drachenfels-GmbH/go-ini?status.svg)](https://godoc.org/github.com/Drachenfels-GmbH/go-ini)
+
 # go-ini
 
 Simple but powerful INI file parser.
