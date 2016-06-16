@@ -3,6 +3,7 @@ package ini
 import (
 	"bytes"
 	"io"
+	"io/ioutil"
 )
 
 type INIMarshaler interface {
@@ -92,9 +93,18 @@ func (i *INI) Unmarshal(s *Scanner) error {
 	return nil
 }
 
-// Unmarshal using a Scanner with default settings
+// Unmarshal using a Scanner with default settings.
 func Unmarshal(b []byte) (*INI, error) {
 	i := New()
 	s := NewScanner(bytes.NewReader(b))
 	return i, i.Unmarshal(s)
+}
+
+// Unmarshal from file.
+func Load(filePath string) (*INI, error) {
+	b, err := ioutil.ReadFile(filePath)
+	if err != nil {
+		return nil, err
+	}
+	return Unmarshal(b)
 }
