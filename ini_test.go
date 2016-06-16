@@ -2,82 +2,46 @@ package ini
 
 import (
 	"github.com/stretchr/testify/assert"
-	"io"
-	"strings"
 	"testing"
 )
+var s =
+`[foobar]
+foo=bar
+hello=world
 
-func TestScan_EmptyLinesAndComments(t *testing.T) {
-	s := `
+[foobar1]
+foo1=bar1
+hello1=world1
 
-#
-# foobar   
-
-#
-
-`
-	rdr := NewScanner(strings.NewReader(s))
-	//rdr.PanicOnError = true
-	line, err := rdr.Scan()
-	assert.Nil(t, err)
-
-	assert.Equal(t, 4, line.Pos)
-	assert.Equal(t, COMMENT, line.ValType)
-	assert.Equal(t, "foobar", line.Value)
-}
-
-func TestScan_KEYVAL(t *testing.T) {
-	s := `foo=bar
-`
-	rdr := NewScanner(strings.NewReader(s))
-	//rdr.PanicOnError = true
-	line, err := rdr.Scan()
-	assert.Nil(t, err)
-
-	assert.Equal(t, 1, line.Pos)
-	assert.Equal(t, KEYVAL, line.ValType)
-	assert.Equal(t, "foo", line.Key)
-	assert.Equal(t, "bar", line.Value)
-
-	line, err = rdr.Scan()
-	assert.Equal(t, 2, line.Pos)
-	assert.Equal(t, io.EOF, err)
-}
-
-func TestScan_EOF(t *testing.T) {
-	s := `foo=bar
+[foobar]
+foo=barA
+hello=worldA
+foo=barB
+blub=bla
 
 `
-	rdr := NewScanner(strings.NewReader(s))
-	line, err := rdr.Scan()
+
+func TestUnmarshal(t *testing.T) {
+	i, err := Parse([]byte(s))
 	assert.Nil(t, err)
 
-	line, err = rdr.Scan()
-	assert.Equal(t, 3, line.Pos)
-	assert.Equal(t, io.EOF, err)
+	assert.Equal(t, 4, len(i.Sections))
+	assert.Equal(t, 0, len(i.Sections[0].Body))
+	assert.True(t, i.Sections[0].IsDefault())
 
-	line, err = rdr.Scan()
-	assert.Equal(t, 3, line.Pos)
-	assert.Equal(t, io.EOF, err)
+	assert.Equal(t, "foobar", i.Sections[1].Header.Value)
+	assert.Equal(t, "foobar1", i.Sections[2].Header.Value)
+	assert.Equal(t, "foobar", i.Sections[3].Header.Value)
 }
 
-func TestScan_SECTION(t *testing.T) {
-	s := `[foo]
-
-[blubber
-`
-	rdr := NewScanner(strings.NewReader(s))
-	line, err := rdr.Scan()
+func TestSections(t *testing.T) {
+	i, err := Parse([]byte(s))
 	assert.Nil(t, err)
-	assert.Equal(t, 1, line.Pos)
-	assert.Equal(t, SECTION, line.ValType)
-	assert.Equal(t, "foo", line.Value)
 
-	line, err = rdr.Scan()
-	assert.Equal(t, 3, line.Pos)
-	assert.Equal(t, SECTION, line.ValType)
-	assert.Equal(t, "", line.Value)
-	assert.NotNil(t, err)
+	sections := i.GetSections("foobar")
+	assert.Equal(t, 2, len(sections))
+
+	assert.Equal(t, "bar", sections[0].Values("foo")[0])
+	assert.Equal(t, "barA", sections[1].Values("foo")[0])
+	assert.Equal(t, "barB", sections[1].Values("foo")[1])
 }
-
-
