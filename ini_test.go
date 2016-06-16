@@ -3,6 +3,7 @@ package ini
 import (
 	"github.com/stretchr/testify/assert"
 	"testing"
+	"bytes"
 )
 
 var s = `[foobar]
@@ -44,4 +45,41 @@ func TestSections(t *testing.T) {
 	assert.Equal(t, "bar", sections[0].Values("foo")[0])
 	assert.Equal(t, "barA", sections[1].Values("foo")[0])
 	assert.Equal(t, "barB", sections[1].Values("foo")[1])
+}
+
+func TestValue(t *testing.T) {
+	i, err := Unmarshal([]byte(s))
+	assert.Nil(t, err)
+	assert.False(t, i.SectionOverwrite)
+	assert.False(t, i.ValueOverwrite)
+	val, exist := i.Value("foobar", "foo")
+	assert.True(t, exist)
+	assert.Equal(t, "bar", val)
+}
+
+func TestValue_WithSectionOverwrite(t *testing.T) {
+	s := NewScanner(bytes.NewReader([]byte(s)))
+	i := New()
+	i.SectionOverwrite = true
+
+	err := i.Unmarshal(s)
+	assert.Nil(t, err)
+
+	val, exist := i.Value("foobar", "foo")
+	assert.True(t, exist)
+	assert.Equal(t, "barA", val)
+}
+
+func TestValue_WithSectionAndValueOverwrite(t *testing.T) {
+	s := NewScanner(bytes.NewReader([]byte(s)))
+	i := New()
+	i.SectionOverwrite = true
+	i.ValueOverwrite = true
+
+	err := i.Unmarshal(s)
+	assert.Nil(t, err)
+
+	val, exist := i.Value("foobar", "foo")
+	assert.True(t, exist)
+	assert.Equal(t, "barB", val)
 }

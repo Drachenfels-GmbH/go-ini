@@ -36,12 +36,6 @@ func (l *Line) String() string {
 }
 
 type Scanner struct {
-	// The last declaration of a section
-	// overwrites any previous declaration.
-	SectionOverwrite bool
-	// The last declaration of a key overwrites
-	// any previous declaration.
-	KeyOverwrite bool
 	// Comment character for the start of a line.
 	Comment rune
 	// Key value separator token

@@ -48,6 +48,10 @@ func (i *INI) AddSection(header *Line) *Section {
 
 type INI struct {
 	Sections []*Section
+	// The last declaration of a section has precedence
+	SectionOverwrite bool
+	// The last declaration of a key has precedence.
+	ValueOverwrite bool
 }
 
 func (i *INI) GetSections(name string) []*Section {
@@ -58,6 +62,66 @@ func (i *INI) GetSections(name string) []*Section {
 		}
 	}
 	return sections
+}
+
+func (i *INI) FirstSection(sectionName string) *Section {
+	for _, sec := range i.Sections {
+		if !sec.IsDefault() && sec.Header.Value == sectionName {
+			return sec
+		}
+	}
+	return nil
+}
+
+func (i *INI) LastSection(sectionName string) *Section {
+	for x := len(i.Sections) - 1; x > 0; x-- {
+		sec := i.Sections[x]
+		if !sec.IsDefault() && sec.Header.Value == sectionName {
+			return sec
+		}
+	}
+	return nil
+}
+
+func (i *INI) Section(sectionName string) *Section {
+	if i.SectionOverwrite {
+		return i.LastSection(sectionName)
+	} else {
+		return i.FirstSection(sectionName)
+	}
+	return nil
+}
+
+func (s *Section) FirstValue(key string) (string, bool) {
+	for _, k := range s.Body {
+		if k.Key == key {
+			return k.Value, true
+		}
+	}
+	return "", false
+}
+
+func (s *Section) LastValue(key string) (string, bool) {
+	for i := len(s.Body) - 1; i > 0; i-- {
+		k := s.Body[i]
+		if k.Key == key {
+			return k.Value, true
+		}
+	}
+	return "", false
+}
+
+func (i *INI) Value(sectionName, key string) (string, bool) {
+	// TODO add support for default section !!!!
+	s := i.Section(sectionName)
+	if s != nil {
+		if i.ValueOverwrite {
+			return s.LastValue(key)
+		} else {
+			return s.FirstValue(key)
+		}
+	}
+	return "", false
 }
 
 func New() *INI {
@@ -83,7 +147,6 @@ func (i *INI) Unmarshal(s *Scanner) error {
 			}
 		}
 		switch line.ValType {
-		case COMMENT: // discard
 		case SECTION:
 			i.AddSection(line)
 		case KEYVAL:
