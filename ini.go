@@ -1,15 +1,3 @@
-/*
-	IMPORTANT considerations	
-
-	- Last line must be terminated with a newline
-
-	TODO associate preceding (multi-line) comments with lines ? 
-  TODO associate trailing comments to lines ?
-  TODO For KeyVal split up the Value part into Value and CommentValue
-  IDEA map comments to line numbers and use line number of line to collect 
-  comments (same line, continuous lines before)
-
-*/
 package ini
 
 import (
@@ -56,7 +44,7 @@ func (l *Line) String() string {
 	return string(l.Val)
 }
 
-type Reader struct {
+type Scanner struct {
 	// The last declaration of a section
 	// overwrites any previous declaration.
 	SectionOverwrite bool
@@ -69,50 +57,43 @@ type Reader struct {
 	Separator string
 	// Trim leading space in every line.
 	TrimLeadingSpace bool
+	//
+	//PanicOnError bool
 
 	rdr     *bufio.Reader
-	pos     int    // line counter (beginning with line 1)
-	line    *Line  // unmodified line value (e.g for error reporting)
+	pos     int   // line counter (beginning with line 1)
+	line    *Line // unmodified line value (e.g for error reporting)
+	err     error
 	section string // current section name
 }
 
-type LineError struct {
-	line *Line
-	msg  string
-}
-
-func (e *LineError) Error() string {
-	return fmt.Sprintf("Error at line[%d] - %s: %q", e.line.Pos, e.msg, e.line)
-}
-
-func (r *Reader) NewLineError(s string, args ...interface{}) *LineError {
-	return &LineError{
-		line: r.line,
-		msg:  fmt.Sprintf(s, args...),
-	}
-}
-
-
 // Process line by line
-func (r *Reader) Read() (*Line, error) {
+func (r *Scanner) Scan() (*Line, error) {
 	// minimum line length:
 	// comment: 2 characters '#f'
 	// section: 3 characters '[f]'
 	// keyvalue: 3 characters 'k=v'
-
 	for {
+		if r.err != nil {
+			return r.line, r.err
+		}
+
 		r.pos++
-		r.line = nil
+		r.line = &Line{Pos: r.pos}
 
-		l, lineBufferExceeded, err := r.rdr.ReadLine()
-		if err != nil {
-			return nil, err
-		}
+		var lineBufferExceeded bool
+		r.line.Val, lineBufferExceeded, r.err = r.rdr.ReadLine()
+
 		if lineBufferExceeded {
-			return nil, r.NewLineError("Internal error, line buffer exceeded.")
+			return r.line, fmt.Errorf("Internal error, line buffer exceeded.")
 		}
 
-		s := string(l)
+		// Stop line processing on undefined error but continue on EOF.
+		if r.err != nil && r.err != io.EOF {
+			return r.line, r.err
+		}
+
+		s := string(r.line.Val)
 		// trim line
 		if r.TrimLeadingSpace {
 			s = strings.TrimLeftFunc(s, unicode.IsSpace)
@@ -124,13 +105,15 @@ func (r *Reader) Read() (*Line, error) {
 			continue
 		}
 
-		r.line = &Line{Pos: r.pos, Val: l}
-
 		if len(s) == 1 {
 			if rune(s[0]) == r.Comment {
 				continue
 			} else {
-				return nil, r.NewLineError("Malformed")
+				//if len(strings.TrimSpace(s)) == 0 {
+				//	continue
+				//} else {
+				return r.line, fmt.Errorf("Malformed line.")
+				//}
 			}
 		}
 
@@ -143,7 +126,7 @@ func (r *Reader) Read() (*Line, error) {
 			} else {
 				r.line.ValType = COMMENT
 				r.line.Value = s
-				return r.line, nil
+				return r.line, r.err
 			}
 		case '[':
 			// section
@@ -151,19 +134,20 @@ func (r *Reader) Read() (*Line, error) {
 			if len(s) > 0 && s[len(s)-1] == ']' {
 				r.line.ValType = SECTION
 				r.line.Value = s[:len(s)-1]
-				return r.line, nil
+				return r.line, r.err
 			} else {
-				return nil, r.NewLineError("Malformed section")
+				return r.line, fmt.Errorf("Malformed section.")
 			}
 		default:
 			// keyval
 			vals := strings.SplitN(s, r.Separator, 2)
 			if len(vals) != 2 {
-				return nil, r.NewLineError("Malformed keyval")
+				return r.line, fmt.Errorf("Malformed keyval.")
 			}
 			r.line.ValType = KEYVAL
 			r.line.Key = vals[0]
 			r.line.Value = vals[1]
+			return r.line, r.err
 		}
 	}
 }
@@ -176,10 +160,11 @@ func (i *INI) Unmarshal(b []byte) error {
 	return fmt.Errorf("Not implemented")
 }
 
-func NewReader(r io.Reader) *Reader {
-	return &Reader{
-		rdr:       bufio.NewReader(r),
-		Comment:   '#',
-		Separator: "=",
+func NewScanner(r io.Reader) *Scanner {
+	return &Scanner{
+		rdr:              bufio.NewReader(r),
+		Comment:          '#',
+		Separator:        "=",
+		TrimLeadingSpace: true,
 	}
 }
