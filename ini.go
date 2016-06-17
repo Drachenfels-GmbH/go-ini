@@ -107,7 +107,7 @@ func (i *INI) getVal(sec *Section, sectionName, key string) (string, error) {
 	if !sec.IsDefault() && sec.Header.Value == sectionName {
 		return sec.Value(key, i.ValueOverwrite)
 	}
-	return "", UNAVAIL 
+	return "", UNAVAIL
 }
 
 func (i *INI) Value(sectionName, key string) (string, error) {
@@ -126,6 +126,14 @@ func (i *INI) Value(sectionName, key string) (string, error) {
 		}
 	}
 	return "", UNAVAIL
+}
+
+func (i *INI) Values(sectionName, key string) []string {
+	vals := make([]string, 0, len(i.Sections))
+	for _, sec := range i.GetSections(sectionName) {
+		vals = append(vals, sec.Values(key)...)
+	}
+	return vals
 }
 
 func (i *INI) IntValue(sectionName, key string) (int, error) {
