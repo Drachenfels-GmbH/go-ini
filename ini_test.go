@@ -1,9 +1,9 @@
 package ini
 
 import (
+	"bytes"
 	"github.com/stretchr/testify/assert"
 	"testing"
-	"bytes"
 )
 
 var s = `[foobar]
@@ -19,6 +19,7 @@ foo=barA
 hello=worldA
 foo=barB
 blub=bla
+myint=4711
 
 `
 
@@ -52,8 +53,8 @@ func TestValue(t *testing.T) {
 	assert.Nil(t, err)
 	assert.False(t, i.SectionOverwrite)
 	assert.False(t, i.ValueOverwrite)
-	val, exist := i.Value("foobar", "foo")
-	assert.True(t, exist)
+	val, err := i.Value("foobar", "foo")
+	assert.Nil(t, err)
 	assert.Equal(t, "bar", val)
 }
 
@@ -65,8 +66,8 @@ func TestValue_WithSectionOverwrite(t *testing.T) {
 	err := i.Unmarshal(s)
 	assert.Nil(t, err)
 
-	val, exist := i.Value("foobar", "foo")
-	assert.True(t, exist)
+	val, err := i.Value("foobar", "foo")
+	assert.Nil(t, err)
 	assert.Equal(t, "barA", val)
 }
 
@@ -79,7 +80,17 @@ func TestValue_WithSectionAndValueOverwrite(t *testing.T) {
 	err := i.Unmarshal(s)
 	assert.Nil(t, err)
 
-	val, exist := i.Value("foobar", "foo")
-	assert.True(t, exist)
+	val, err := i.Value("foobar", "foo")
+	assert.Nil(t, err)
 	assert.Equal(t, "barB", val)
+}
+
+func TestIntValue(t *testing.T) {
+	i, err := Unmarshal([]byte(s))
+	assert.Nil(t, err)
+	assert.False(t, i.SectionOverwrite)
+	assert.False(t, i.ValueOverwrite)
+	val, err := i.IntValue("foobar", "myint")
+	assert.Nil(t, err)
+	assert.Equal(t, 4711, val)
 }

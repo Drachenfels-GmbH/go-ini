@@ -2,9 +2,13 @@ package ini
 
 import (
 	"bytes"
+	"fmt"
 	"io"
 	"io/ioutil"
+	"strconv"
 )
+
+var UNAVAIL = fmt.Errorf("Value unavailable.")
 
 type INIMarshaler interface {
 	MarshalINI() (b []byte, err error)
@@ -64,34 +68,6 @@ func (i *INI) GetSections(name string) []*Section {
 	return sections
 }
 
-func (i *INI) FirstSection(sectionName string) *Section {
-	for _, sec := range i.Sections {
-		if !sec.IsDefault() && sec.Header.Value == sectionName {
-			return sec
-		}
-	}
-	return nil
-}
-
-func (i *INI) LastSection(sectionName string) *Section {
-	for x := len(i.Sections) - 1; x > 0; x-- {
-		sec := i.Sections[x]
-		if !sec.IsDefault() && sec.Header.Value == sectionName {
-			return sec
-		}
-	}
-	return nil
-}
-
-func (i *INI) Section(sectionName string) *Section {
-	if i.SectionOverwrite {
-		return i.LastSection(sectionName)
-	} else {
-		return i.FirstSection(sectionName)
-	}
-	return nil
-}
-
 func (s *Section) FirstValue(key string) (string, bool) {
 	for _, k := range s.Body {
 		if k.Key == key {
@@ -111,17 +87,42 @@ func (s *Section) LastValue(key string) (string, bool) {
 	return "", false
 }
 
-func (i *INI) Value(sectionName, key string) (string, bool) {
-	// TODO add support for default section !!!!
-	s := i.Section(sectionName)
-	if s != nil {
+func (i *INI) getVal(sec *Section, sectionName, key string) (string, bool) {
+	if !sec.IsDefault() && sec.Header.Value == sectionName {
 		if i.ValueOverwrite {
-			return s.LastValue(key)
+			return sec.LastValue(key)
 		} else {
-			return s.FirstValue(key)
+			return sec.FirstValue(key)
 		}
 	}
 	return "", false
+}
+
+func (i *INI) Value(sectionName, key string) (string, error) {
+	// TODO add support for default section !!!!
+	if i.SectionOverwrite {
+		for x := len(i.Sections) - 1; x > 0; x-- {
+			if val, ok := i.getVal(i.Sections[x], sectionName, key); ok {
+				return val, nil
+			}
+		}
+	} else {
+		for _, sec := range i.Sections {
+			if val, ok := i.getVal(sec, sectionName, key); ok {
+				return val, nil
+			}
+		}
+	}
+	return "", UNAVAIL
+}
+
+func (i *INI) IntValue(sectionName, key string) (int, error) {
+	val, err := i.Value(sectionName, key)
+	if err == nil {
+		return strconv.Atoi(val)
+	} else {
+		return -1, err
+	}
 }
 
 func New() *INI {
