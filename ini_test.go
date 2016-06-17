@@ -94,3 +94,13 @@ func TestIntValue(t *testing.T) {
 	assert.Nil(t, err)
 	assert.Equal(t, 4711, val)
 }
+
+func TestValues(t *testing.T) {
+	i, err := Unmarshal([]byte(s))
+	assert.Nil(t, err)
+	vals := i.Values("foobar", "foo")
+	assert.Equal(t, 3, len(vals))
+	assert.Equal(t, "bar", vals[0])
+	assert.Equal(t, "barA", vals[1])
+	assert.Equal(t, "barB", vals[2])
+}
