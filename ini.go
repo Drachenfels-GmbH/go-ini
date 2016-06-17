@@ -87,13 +87,17 @@ func (s *Section) LastValue(key string) (string, bool) {
 	return "", false
 }
 
+func (s *Section) Value(key string, overwrite bool) (string, bool) {
+	if overwrite {
+		return s.LastValue(key)
+	} else {
+		return s.FirstValue(key)
+	}
+}
+
 func (i *INI) getVal(sec *Section, sectionName, key string) (string, bool) {
 	if !sec.IsDefault() && sec.Header.Value == sectionName {
-		if i.ValueOverwrite {
-			return sec.LastValue(key)
-		} else {
-			return sec.FirstValue(key)
-		}
+		return sec.Value(key, i.ValueOverwrite)
 	}
 	return "", false
 }
