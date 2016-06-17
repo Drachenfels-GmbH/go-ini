@@ -95,6 +95,15 @@ func (s *Section) Value(key string, overwrite bool) (string, bool) {
 	}
 }
 
+func (s *Section) IntValue(key string, overwrite bool) (int, bool) {
+	val, err := s.Value(key, overwrite)
+	if err == nil {
+		return strconv.Atoi(val)
+	} else {
+		return -1, err
+	}
+}
+
 func (i *INI) getVal(sec *Section, sectionName, key string) (string, bool) {
 	if !sec.IsDefault() && sec.Header.Value == sectionName {
 		return sec.Value(key, i.ValueOverwrite)
