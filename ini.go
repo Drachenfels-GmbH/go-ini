@@ -68,26 +68,26 @@ func (i *INI) GetSections(name string) []*Section {
 	return sections
 }
 
-func (s *Section) FirstValue(key string) (string, bool) {
+func (s *Section) FirstValue(key string) (string, error) {
 	for _, k := range s.Body {
 		if k.Key == key {
-			return k.Value, true
+			return k.Value, nil
 		}
 	}
-	return "", false
+	return "", UNAVAIL
 }
 
-func (s *Section) LastValue(key string) (string, bool) {
+func (s *Section) LastValue(key string) (string, error) {
 	for i := len(s.Body) - 1; i > 0; i-- {
 		k := s.Body[i]
 		if k.Key == key {
-			return k.Value, true
+			return k.Value, nil
 		}
 	}
-	return "", false
+	return "", UNAVAIL
 }
 
-func (s *Section) Value(key string, overwrite bool) (string, bool) {
+func (s *Section) Value(key string, overwrite bool) (string, error) {
 	if overwrite {
 		return s.LastValue(key)
 	} else {
@@ -95,33 +95,32 @@ func (s *Section) Value(key string, overwrite bool) (string, bool) {
 	}
 }
 
-func (s *Section) IntValue(key string, overwrite bool) (int, bool) {
-	val, err := s.Value(key, overwrite)
-	if err == nil {
+func (s *Section) IntValue(key string, overwrite bool) (int, error) {
+	if val, err := s.Value(key, overwrite); err == nil {
 		return strconv.Atoi(val)
 	} else {
-		return -1, err
+		return -1, UNAVAIL
 	}
 }
 
-func (i *INI) getVal(sec *Section, sectionName, key string) (string, bool) {
+func (i *INI) getVal(sec *Section, sectionName, key string) (string, error) {
 	if !sec.IsDefault() && sec.Header.Value == sectionName {
 		return sec.Value(key, i.ValueOverwrite)
 	}
-	return "", false
+	return "", UNAVAIL 
 }
 
 func (i *INI) Value(sectionName, key string) (string, error) {
 	// TODO add support for default section !!!!
 	if i.SectionOverwrite {
 		for x := len(i.Sections) - 1; x > 0; x-- {
-			if val, ok := i.getVal(i.Sections[x], sectionName, key); ok {
+			if val, err := i.getVal(i.Sections[x], sectionName, key); err == nil {
 				return val, nil
 			}
 		}
 	} else {
 		for _, sec := range i.Sections {
-			if val, ok := i.getVal(sec, sectionName, key); ok {
+			if val, err := i.getVal(sec, sectionName, key); err == nil {
 				return val, nil
 			}
 		}
